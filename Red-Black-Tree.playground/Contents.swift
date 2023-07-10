@@ -1,6 +1,6 @@
 import Foundation
 
-enum Color {
+public enum Color {
     case red
     case black
 
@@ -12,14 +12,14 @@ enum Color {
     }
 }
 
-enum RedBlackTree<Element: Comparable> {
+public enum RedBlackTree<Element: Comparable> {
     case empty
     indirect case node(Color, Element, RedBlackTree<Element>, RedBlackTree<Element>)
 }
 
-// contain
+/// contain
 extension RedBlackTree {
-    func contains(_ value: Element) -> Bool {
+    public func contains(_ value: Element) -> Bool {
         switch self {
         case .empty:
             return false
@@ -33,10 +33,10 @@ extension RedBlackTree {
     }
 }
 
-// loop through
+/// loop through
 extension RedBlackTree {
     // l v r
-    func forEach(handle: (_ element: Element) throws -> Void) rethrows {
+    public func forEach(handle: (_ element: Element) throws -> Void) rethrows {
         switch self {
         case .empty:
             break
@@ -48,9 +48,9 @@ extension RedBlackTree {
     }
 }
 
-// diagram display
+/// diagram display
 extension RedBlackTree: CustomStringConvertible {
-    var description: String {
+    public var description: String {
         return diagram("", "", "")
     }
 
@@ -71,11 +71,11 @@ extension RedBlackTree: CustomStringConvertible {
 }
 
 extension RedBlackTree {
-        @discardableResult
-    public mutating func inset(_ element: Element)->(inserted: Bool,memeberAfterInset:Element) {
-        let (tree,old) = inserting(element)
+    @discardableResult
+    public mutating func inset(_ element: Element) -> (inserted: Bool, memeberAfterInset: Element) {
+        let (tree, old) = inserting(element)
         self = tree
-        return (old == nil,old ?? element)
+        return (old == nil, old ?? element)
     }
 }
 
@@ -91,7 +91,7 @@ extension RedBlackTree {
     }
 }
 
-// insert
+/// insert
 extension RedBlackTree {
     func _inserting(_ element: Element) -> (tree: RedBlackTree, old: Element?) {
         switch self {
@@ -117,7 +117,7 @@ extension RedBlackTree {
     }
 }
 
-// balance
+/// balance
 extension RedBlackTree {
     func balanced(_ color: Color, value: Element, left: RedBlackTree, right: RedBlackTree) -> RedBlackTree {
         switch (color, value, left, right) {
@@ -135,7 +135,113 @@ extension RedBlackTree {
 // test
 var set = RedBlackTree<Int>.empty
 
-for i in (1..<20).shuffled() {
+for i in (1 ..< 20).shuffled() {
     set.inset(i)
 }
+
 print(set)
+
+/// Index
+extension RedBlackTree {
+    public struct Index {
+        fileprivate var value: Element? // filePrivate
+    }
+}
+/// Comparable
+extension RedBlackTree.Index: Comparable {
+    public static func < (lhs: RedBlackTree<Element>.Index, rhs: RedBlackTree<Element>.Index) -> Bool {
+        if let l = lhs.value,
+           let r = rhs.value {
+            return l < r
+        }
+        // left nil / right nil / both nil
+        /// 保证结束索引最大
+        return lhs.value != nil
+    }
+    
+    public static func == (lhs: RedBlackTree<Element>.Index,
+                           rhs: RedBlackTree<Element>.Index) -> Bool { // equal
+        return lhs.value == rhs.value
+    }
+}
+/// min max
+extension RedBlackTree {
+    // log N collection 协议要求在常数事件内完成 -- 缓存
+    public func min()->Element? {
+        switch self {
+        case .empty:
+            return nil
+        case let .node(_, value, left, _):
+            return left.min() ?? value // 够优雅
+        }
+    /*
+     case .node(_, let value, .empty, _):
+         return value
+     case .node(_, _, let left, _):
+         return left.min()
+     }
+     */
+    }
+    
+    public func max()->Element? {
+        var dummy = self
+        var max: Element?
+        while case let .node(_,value,_,right) = dummy {
+            max = value
+            dummy = right
+        }
+        return max
+    }
+    
+}
+/// Collection
+extension RedBlackTree: Collection {
+
+    
+    public var startIndex: Index {Index.init(value: min())}
+    public var endIndex: Index {Index.init(value: nil)}
+    
+    public subscript(i: Index) ->Element {
+        return i.value! //
+    }
+    
+    public func index(after i: Index) -> Index {
+        let v = self.value(following: i.value!)
+        precondition(v.found)
+        return Index(value: v.next)
+    }
+    
+}
+
+// before & after
+extension RedBlackTree {
+    func value(following element: Element)->(found: Bool,next: Element?) {
+        switch self {
+        case .empty:
+            return (false,nil) // non match
+        case .node(_, element, _,let right): // value match
+            return (true,right.min())
+        case let .node(_, value, left, _) where value > element:
+            let v = left.value(following: element)
+            return (v.found,v.next ?? value)
+        case let .node(_, _, _, right):
+            return right.value(following: element)
+        }
+    }
+    
+    func value(preceding element: Element)->(found: Bool,next: Element?) {
+        var node = self
+        var previous: Element? = nil
+        while case let .node(_,value,left,right) = node {
+            if value > element {
+                node = left
+            } else if value < element {
+                previous = value
+                node = right
+            } else {
+                return (true,left.max() ?? previous)
+            }
+        }
+        return (false,previous)
+    }
+}
