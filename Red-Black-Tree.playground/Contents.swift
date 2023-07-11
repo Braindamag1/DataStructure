@@ -245,3 +245,23 @@ extension RedBlackTree {
         return (false,previous)
     }
 }
+
+//它的默认实现将会计算 startIndex 和 endIndex 之间的步数， 这样 O(n log n) 比起我们的 O(n) 会慢得多。但是我们的实现也并没有什么值得宣扬的:它仍 然需要访问树中每一个节点。
+extension RedBlackTree {
+    public init() {
+        self = .empty
+    }
+    
+    //O(n) 默认实现会从startIndex 到 endIndex 是O(nlogn)
+    public var count: Int {
+        switch self {
+        case .empty:
+            return 0
+        case .node(_, _, let left, let right ):
+            return (left.count + 1 + right.count)
+        }
+    }
+}
+
+
+// 目前没有删除操作---与删除后平衡树的操作
